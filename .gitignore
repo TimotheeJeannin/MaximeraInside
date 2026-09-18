@@ -6,3 +6,5 @@ __pycache__/
 *.obj
 *.mtl
 *_textures/
+grid-insert.obj
+*.stl

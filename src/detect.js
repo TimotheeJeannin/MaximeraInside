@@ -49,16 +49,32 @@ export function detectInterior(object) {
     zMin: { v: new THREE.Vector3(0, 0, -1), axis: 'z', perp: 'x', sign: -1 },
   };
 
+  // Rough inner extent from centre rays, so side offsets stay inside the walls.
+  const inner = {};
+  for (const d of Object.values(dirs)) {
+    let best = null;
+    for (let k = 1; k <= levels; k += 5) {
+      const o = c.clone();
+      o.y = floorY + heightAt(k);
+      const dist = cast(o, d.v);
+      if (dist !== null) best = best === null ? dist : Math.min(best, dist);
+    }
+    const edge = d.sign > 0 ? box.max[d.axis] : box.min[d.axis];
+    inner[`${d.axis}${d.sign}`] = best === null ? edge : c[d.axis] + d.sign * best;
+  }
+
   // Distance from the centre to the closest wall hit, per wall and height.
   const raw = {};
   for (const [key, d] of Object.entries(dirs)) {
+    const lo = inner[`${d.perp}-1`];
+    const hi = inner[`${d.perp}1`];
     raw[key] = [];
     for (let k = 0; k <= levels; k++) {
       let best = null;
       for (let s = -2; s <= 2; s++) {
         const o = c.clone();
         o.y = floorY + heightAt(k);
-        o[d.perp] += s * 0.2 * size[d.perp];
+        o[d.perp] = (lo + hi) / 2 + s * 0.2 * (hi - lo);
         const dist = cast(o, d.v);
         if (dist === null) continue;
         const reach = o[d.axis] + d.sign * dist - c[d.axis];

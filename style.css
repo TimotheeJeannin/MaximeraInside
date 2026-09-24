@@ -1,4 +1,6 @@
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -17,7 +19,10 @@ aside {
   border-right: 1px solid #ddd;
 }
 
-h1 { font-size: 18px; margin: 4px 0 12px; }
+h1 {
+  font-size: 18px;
+  margin: 4px 0 12px;
+}
 
 fieldset {
   border: 1px solid #ddd;
@@ -26,7 +31,10 @@ fieldset {
   padding: 8px 10px;
 }
 
-legend { font-weight: 600; padding: 0 4px; }
+legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
 
 label {
   display: flex;
@@ -36,18 +44,51 @@ label {
   margin: 6px 0;
 }
 
-label input[type="number"] { width: 80px; }
-label input[type="file"] { width: 100%; }
-label:has(input[type="file"]) { flex-direction: column; align-items: stretch; }
-label.check { justify-content: flex-start; }
+label input[type="number"] {
+  width: 80px;
+}
 
-button { margin: 4px 0; }
+label input[type="file"] {
+  width: 100%;
+}
 
-.info { margin: 6px 0 0; color: #555; font-size: 12px; white-space: pre-line; }
+label select {
+  min-width: 0;
+  flex: 1;
+  max-width: 170px;
+}
 
-#messages { white-space: pre-line; }
-#messages .error { color: #b00020; }
-#messages .warn { color: #a86400; }
+label:has(input[type="file"]) {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+label.check {
+  justify-content: flex-start;
+}
+
+button {
+  margin: 4px 0;
+}
+
+.info {
+  margin: 6px 0 0;
+  color: #555;
+  font-size: 12px;
+  white-space: pre-line;
+}
+
+#messages {
+  white-space: pre-line;
+}
+
+#messages .error {
+  color: #b00020;
+}
+
+#messages .warn {
+  color: #a86400;
+}
 
 main {
   flex: 1;
@@ -56,8 +97,15 @@ main {
   min-width: 0;
 }
 
-#viewer { flex: 3; min-height: 0; position: relative; }
-#viewer canvas { display: block; }
+#viewer {
+  flex: 3;
+  min-height: 0;
+  position: relative;
+}
+
+#viewer canvas {
+  display: block;
+}
 
 #cutting {
   flex: 2;
@@ -79,7 +127,12 @@ main {
   border-bottom: 1px solid #ddd;
 }
 
-#downloads { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
 
 a.button {
   padding: 3px 10px;
@@ -88,7 +141,10 @@ a.button {
   color: #fff;
   text-decoration: none;
 }
-a.button:hover { background: #1f55b8; }
+
+a.button:hover {
+  background: #1f55b8;
+}
 
 #preview {
   flex: 1;
@@ -100,4 +156,7 @@ a.button:hover { background: #1f55b8; }
   align-items: flex-start;
 }
 
-#preview svg { height: 100%; max-width: 100%; }
+#preview svg {
+  height: 100%;
+  max-width: 100%;
+}

@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,13 +17,15 @@
   </script>
   <script type="module" src="src/main.js"></script>
 </head>
+
 <body>
   <aside>
     <h1>Drawer insert</h1>
 
     <fieldset>
       <legend>Drawer</legend>
-      <label>Model (.glb / .gltf)<input id="modelFile" type="file" accept=".glb,.gltf"></label>
+      <label>Model<select id="modelSelect"></select></label>
+      <label>Or load your own (.glb / .gltf)<input id="modelFile" type="file" accept=".glb,.gltf"></label>
       <label>Interior width (mm)<input id="width" type="number" step="0.5" min="10"></label>
       <label>Interior depth (mm)<input id="depth" type="number" step="0.5" min="10"></label>
       <button id="resetDims" type="button">Reset to detected size</button>
@@ -62,4 +65,5 @@
     </section>
   </main>
 </body>
+
 </html>

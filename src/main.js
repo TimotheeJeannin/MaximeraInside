@@ -6,7 +6,7 @@ import { detectInterior } from './detect.js';
 import { buildInsert } from './insert.js';
 import { layoutSheets, sheetToSVG, sheetToDXF } from './export.js';
 
-const DEFAULT_MODEL = 'models/maximera-30285025-rqp3.glb';
+const MODELS_MANIFEST = 'models/models.json';
 const $ = (id) => document.getElementById(id);
 
 // --- 3D scene ---------------------------------------------------------------
@@ -237,11 +237,30 @@ function renderCutting(sheets, size, p) {
 document.querySelectorAll('aside input:not([type="file"])').forEach((el) => el.addEventListener('input', update));
 $('resetDims').addEventListener('click', () => detected && resetDims());
 $('showDrawer').addEventListener('change', (e) => (drawerGroup.visible = e.target.checked));
+$('modelSelect').addEventListener('change', (e) => {
+  if (e.target.value) loadModel(e.target.value);
+});
 $('modelFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  const select = $('modelSelect');
+  select.querySelector('option[value=""]')?.remove();
+  select.prepend(new Option(file.name, '', true, true));
   const url = URL.createObjectURL(file);
   loadModel(url).finally(() => URL.revokeObjectURL(url));
 });
 
-loadModel(DEFAULT_MODEL);
+async function loadModelList() {
+  try {
+    const res = await fetch(MODELS_MANIFEST);
+    if (!res.ok) throw new Error(res.statusText);
+    const models = await res.json();
+    const select = $('modelSelect');
+    for (const m of models) select.append(new Option(m.name, `models/${m.file}`));
+    if (models.length) loadModel(select.value);
+  } catch (e) {
+    message(`Could not read ${MODELS_MANIFEST}: ${e.message}`, 'error');
+  }
+}
+
+loadModelList();

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drawer insert designer</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.15/build/index.module.js"
+      }
+    }
+  </script>
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <aside>
+    <h1>Drawer insert</h1>
+
+    <fieldset>
+      <legend>Drawer</legend>
+      <label>Model (.glb / .gltf)<input id="modelFile" type="file" accept=".glb,.gltf"></label>
+      <label>Interior width (mm)<input id="width" type="number" step="0.5" min="10"></label>
+      <label>Interior depth (mm)<input id="depth" type="number" step="0.5" min="10"></label>
+      <button id="resetDims" type="button">Reset to detected size</button>
+      <label class="check"><input id="showDrawer" type="checkbox" checked>Show drawer</label>
+      <p id="drawerInfo" class="info"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Insert</legend>
+      <label>Height (mm)<input id="height" type="number" value="50" step="1" min="5"></label>
+      <label>Material thickness (mm)<input id="thickness" type="number" value="3" step="0.1" min="0.5"></label>
+      <label>Columns<input id="cols" type="number" value="4" step="1" min="1"></label>
+      <label>Rows<input id="rows" type="number" value="3" step="1" min="1"></label>
+      <label>Clearance to walls (mm)<input id="clearance" type="number" value="1" step="0.5" min="0"></label>
+      <label class="check"><input id="frame" type="checkbox">Outer frame</label>
+      <p id="insertInfo" class="info"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Laser</legend>
+      <label>Kerf (mm)<input id="kerf" type="number" value="0.15" step="0.01" min="0"></label>
+      <label>Sheet width (mm)<input id="sheetW" type="number" value="600" step="1" min="10"></label>
+      <label>Sheet height (mm)<input id="sheetH" type="number" value="400" step="1" min="10"></label>
+    </fieldset>
+
+    <p id="messages"></p>
+  </aside>
+
+  <main>
+    <div id="viewer"></div>
+    <section id="cutting">
+      <header>
+        <strong>Cutting file</strong>
+        <span id="downloads"></span>
+      </header>
+      <div id="preview"></div>
+    </section>
+  </main>
+</body>
+</html>

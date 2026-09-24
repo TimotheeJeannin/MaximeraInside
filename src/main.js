@@ -144,13 +144,25 @@ function currentBox() {
   return b;
 }
 
+// "125, *, 90" → [125, null, 90]; empty → null; undefined if anything is invalid.
+function parseSizes(text) {
+  const tokens = text.split(/[\s,;]+/).filter(Boolean);
+  if (!tokens.length) return null;
+  const sizes = tokens.map((s) => (s === '*' ? null : Number(s)));
+  return sizes.every((w) => w === null || (Number.isFinite(w) && w > 0)) ? sizes : undefined;
+}
+
 function readParams() {
   const num = (id) => Number($(id).value);
+  const colWidths = parseSizes($('colWidths').value);
+  const rowDepths = parseSizes($('rowDepths').value);
   return {
     height: num('height'),
     thickness: num('thickness'),
-    cols: Math.max(1, Math.round(num('cols'))),
-    rows: Math.max(1, Math.round(num('rows'))),
+    cols: colWidths?.length ?? Math.max(1, Math.round(num('cols'))),
+    rows: rowDepths?.length ?? Math.max(1, Math.round(num('rows'))),
+    colWidths,
+    rowDepths,
     clearance: num('clearance'),
     frame: $('frame').checked,
     kerf: num('kerf'),
@@ -163,7 +175,22 @@ function readParams() {
 function update() {
   if (!detected) return;
   $('messages').textContent = '';
+  // A size list drives the count; the typed count comes back when the list is cleared.
+  for (const [id, listId] of [['cols', 'colWidths'], ['rows', 'rowDepths']]) {
+    const el = $(id);
+    const list = parseSizes($(listId).value);
+    if (list === undefined) continue;
+    if (list && !el.disabled) el.dataset.count = el.value;
+    if (!list && el.disabled) el.value = el.dataset.count;
+    el.disabled = Boolean(list);
+    if (list) el.value = list.length;
+  }
   const p = readParams();
+  if (p.colWidths === undefined || p.rowDepths === undefined) {
+    clearInsert();
+    message('Cell sizes must be positive numbers or *, separated by commas.', 'error');
+    return;
+  }
   const nums = [p.height, p.thickness, p.clearance, p.kerf, p.slotTol, p.sheet.w, p.sheet.h, +$('width').value, +$('depth').value];
   if (nums.some((n) => !Number.isFinite(n) || n < 0) || p.height <= 0 || p.thickness <= 0) {
     clearInsert();
@@ -186,7 +213,13 @@ function update() {
 
   rebuildInsert(res.parts, p.thickness);
 
-  const lines = [`Cells: ${res.cell.w.toFixed(1)} × ${res.cell.d.toFixed(1)} mm (at the floor)`];
+  const fmt = (ws) => (ws.every((w) => Math.abs(w - ws[0]) < 0.05) ? ws[0].toFixed(1) : ws.map((w) => w.toFixed(1)).join(', '));
+  const { w, d } = res.cells;
+  const [fw, fd] = [fmt(w), fmt(d)];
+  const lines =
+    fw.includes(',') || fd.includes(',')
+      ? [`Column widths: ${fw} mm`, `Row depths: ${fd} mm (at the floor)`]
+      : [`Cells: ${fw} × ${fd} mm (at the floor)`];
   for (const part of res.parts) {
     const slots = part.id === 'A' ? 'slots on top' : 'slots underneath';
     const us = part.poly.map(([u]) => u);

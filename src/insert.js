@@ -10,14 +10,25 @@ export function profileAt(profile, h) {
   return values[i] + (values[i + 1] - values[i]) * (x - i);
 }
 
-// Centre positions of the strips across a span, giving equal cells.
-function stripPositions(start, span, cells, t, frame) {
-  const walls = frame ? cells + 1 : cells - 1;
-  const cell = (span - walls * t) / cells;
-  const out = [];
-  if (frame) for (let i = 0; i <= cells; i++) out.push(start + t / 2 + i * (cell + t));
-  else for (let i = 1; i < cells; i++) out.push(start - t / 2 + i * (cell + t));
-  return { cell, positions: out };
+// Cell sizes and strip centre positions across a span. `spec` holds one entry per
+// cell: a size in mm, or null to share what is left. With no null entries, the
+// leftover (or shortfall) is spread over all cells.
+function stripPositions(start, span, spec, t, frame) {
+  const n = spec.length;
+  const walls = frame ? n + 1 : n - 1;
+  const free = span - walls * t;
+  const fixed = spec.reduce((s, w) => s + (w ?? 0), 0);
+  const autos = spec.filter((w) => w == null).length;
+  const extra = (free - fixed) / (autos || n);
+  const cells = spec.map((w) => (w == null ? extra : autos ? w : w + extra));
+  const positions = [];
+  let x = start + (frame ? t / 2 : -t / 2);
+  if (frame) positions.push(x);
+  cells.forEach((w, i) => {
+    x += w + t;
+    if (frame || i < n - 1) positions.push(x);
+  });
+  return { cells, positions, free, fixed, spread: !autos };
 }
 
 // Points along one long edge (u = 0 → L) with rectangular notches of the given depth.
@@ -90,11 +101,14 @@ function stripPolygon({ L, H, topSlots, bottomSlots, width, startProfile, endPro
 }
 
 /**
- * params:   { height, thickness, cols, rows, frame, clearance, slotTol }
+ * params:   { height, thickness, cols, rows, colWidths?, rowDepths?, frame, clearance, slotTol }
+ *           colWidths/rowDepths: per-cell sizes (null = auto); they override cols/rows.
  * interior: { floorY, height, box: {xMin,xMax,zMin,zMax}, profiles: {xMin,...} }
  */
 export function buildInsert(params, interior) {
   const { height: H, thickness: t, cols, rows, frame, clearance: c, slotTol = 0 } = params;
+  const colSpec = params.colWidths?.length ? params.colWidths : Array(cols).fill(null);
+  const rowSpec = params.rowDepths?.length ? params.rowDepths : Array(rows).fill(null);
   const slotW = t + slotTol;
   const errors = [];
   const warnings = [];
@@ -104,12 +118,22 @@ export function buildInsert(params, interior) {
   const W = interior.box.xMax - c - x0;
   const D = interior.box.zMax - c - z0;
 
-  const xs = stripPositions(x0, W, cols, t, frame);
-  const zs = stripPositions(z0, D, rows, t, frame);
-  if (xs.cell <= 0 || zs.cell <= 0) errors.push('Cells are too small for this material thickness.');
+  const xs = stripPositions(x0, W, colSpec, t, frame);
+  const zs = stripPositions(z0, D, rowSpec, t, frame);
+  for (const [s, what] of [[xs, 'Column widths'], [zs, 'Row depths']]) {
+    if (s.fixed > s.free + 0.5 || s.cells.some((w) => w <= 0)) {
+      errors.push(`${what} don't fit: ${s.fixed.toFixed(1)} mm requested, ${s.free.toFixed(1)} mm available.`);
+    } else if (s.spread && Math.abs(s.free - s.fixed) > 0.5) {
+      warnings.push(
+        `${what} add up to ${s.fixed.toFixed(1)} mm but ${s.free.toFixed(1)} mm is available; ` +
+        'the difference is spread over all cells (use * for a flexible cell).',
+      );
+    }
+  }
   if (H > interior.height + 0.01) warnings.push(`Insert is taller than the drawer walls (~${interior.height.toFixed(0)} mm).`);
   if (!xs.positions.length && !zs.positions.length) errors.push('Nothing to cut: add columns/rows or enable the frame.');
-  if (errors.length) return { parts: [], errors, warnings, cell: { w: xs.cell, d: zs.cell } };
+  const cells = { w: xs.cells, d: zs.cells };
+  if (errors.length) return { parts: [], errors, warnings, cells };
 
   const p = frame ? {} : interior.profiles;
   const parts = [];
@@ -145,5 +169,5 @@ export function buildInsert(params, interior) {
     });
   }
 
-  return { parts, errors, warnings, cell: { w: xs.cell, d: zs.cell } };
+  return { parts, errors, warnings, cells };
 }

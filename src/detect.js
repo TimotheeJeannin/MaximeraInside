@@ -89,11 +89,42 @@ export function detectInterior(object) {
   const open = Object.keys(dirs).filter((k) => !closed.includes(k));
   const topLevel = closed.length ? Math.min(...closed.map((k) => topHit(raw[k]))) : levels;
 
+  // Open sides end where the floor does; fittings (screws, clips) may stick out past it.
+  const onFloor = (d, p, t) => {
+    const o = new THREE.Vector3(0, box.max.y + 1, 0);
+    o[d.perp] = p;
+    o[d.axis] = t;
+    const dist = cast(o, new THREE.Vector3(0, -1, 0));
+    return dist !== null && Math.abs(o.y - dist - floorY) < 1;
+  };
+  const floorEdge = (d) => {
+    const lo = inner[`${d.perp}-1`];
+    const hi = inner[`${d.perp}1`];
+    const edge = d.sign > 0 ? box.max[d.axis] : box.min[d.axis];
+    const ends = [];
+    for (let s = -2; s <= 2; s++) {
+      const p = (lo + hi) / 2 + s * 0.2 * (hi - lo);
+      let last = null;
+      for (let t = c[d.axis]; d.sign * (edge - t) >= 0; t += d.sign * STEP) if (onFloor(d, p, t)) last = t;
+      if (last === null) continue;
+      let miss = last + d.sign * STEP;
+      for (let i = 0; i < 8; i++) {
+        const m = (last + miss) / 2;
+        if (onFloor(d, p, m)) last = m;
+        else miss = m;
+      }
+      ends.push(last);
+    }
+    if (!ends.length) return edge;
+    ends.sort((a, b) => a - b);
+    return ends[ends.length >> 1];
+  };
+
   const box2 = {};
   const profiles = {};
   for (const [key, d] of Object.entries(dirs)) {
     if (open.includes(key)) {
-      box2[key] = d.sign > 0 ? box.max[d.axis] : box.min[d.axis];
+      box2[key] = floorEdge(d);
       profiles[key] = { step: STEP, values: [0] };
       continue;
     }

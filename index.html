@@ -1,127 +1,226 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MAXIMERA 60×60 — organiseurs à chaussures</title>
-<style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font: 13px/1.5 system-ui, sans-serif;
-    background: #15181c;
-    color: #e6e8ea;
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 300px 1fr;
-  }
-  aside {
-    border-right: 1px solid #2a2f36;
-    padding: 16px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  h1 { font-size: 15px; margin: 0; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #8c949e; margin: 0 0 6px; }
-  .sub { color: #8c949e; margin: 2px 0 0; }
-  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 9px; }
-  .field > span { color: #b6bdc5; display: flex; justify-content: space-between; }
-  select, input[type=range] { width: 100%; }
-  select {
-    background: #222830; color: #e6e8ea; border: 1px solid #39404a;
-    border-radius: 6px; padding: 5px 8px; font: inherit;
-  }
-  label.check { display: flex; align-items: center; gap: 7px; color: #b6bdc5; margin-bottom: 5px; }
-  button {
-    background: #222830; color: #e6e8ea; border: 1px solid #39404a;
-    border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer;
-  }
-  button:hover { border-color: #5a6572; }
-  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-  #hint { color: #9aa3ad; font-style: italic; }
-  ul { margin: 0; padding-left: 18px; color: #b6bdc5; }
-  li { margin: 2px 0; }
-  main { position: relative; display: flex; flex-direction: column; min-width: 0; }
-  canvas { flex: 1; width: 100%; height: 100%; display: block; }
-  footer { padding: 9px 16px; border-top: 1px solid #2a2f36; color: #b6bdc5; }
-  b { color: #e6e8ea; font-weight: 600; }
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MAXIMERA 60×60 — organiseurs à chaussures</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font: 13px/1.5 system-ui, sans-serif;
+            background: #15181c;
+            color: #e6e8ea;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+        }
+
+        aside {
+            border-right: 1px solid #2a2f36;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        h1 {
+            font-size: 15px;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #8c949e;
+            margin: 0 0 6px;
+        }
+
+        .sub {
+            color: #8c949e;
+            margin: 2px 0 0;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 9px;
+        }
+
+        .field>span {
+            color: #b6bdc5;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        select,
+        input[type=range] {
+            width: 100%;
+        }
+
+        select {
+            background: #222830;
+            color: #e6e8ea;
+            border: 1px solid #39404a;
+            border-radius: 6px;
+            padding: 5px 8px;
+            font: inherit;
+        }
+
+        label.check {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: #b6bdc5;
+            margin-bottom: 5px;
+        }
+
+        button {
+            background: #222830;
+            color: #e6e8ea;
+            border: 1px solid #39404a;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        button:hover {
+            border-color: #5a6572;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        #hint {
+            color: #9aa3ad;
+            font-style: italic;
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 18px;
+            color: #b6bdc5;
+        }
+
+        li {
+            margin: 2px 0;
+        }
+
+        main {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        canvas {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        footer {
+            padding: 9px 16px;
+            border-top: 1px solid #2a2f36;
+            color: #b6bdc5;
+        }
+
+        b {
+            color: #e6e8ea;
+            font-weight: 600;
+        }
+    </style>
 </head>
+
 <body>
-<aside>
-  <div>
-    <h1>Organiseur à chaussures</h1>
-    <p class="sub">MAXIMERA tiroir haut 60×60 — art. 302.850.25. Cavité mesurée directement sur le modèle 3D.</p>
-  </div>
+    <aside>
+        <div>
+            <h1>Organiseur à chaussures</h1>
+            <p class="sub">MAXIMERA tiroir haut 60×60 — art. 302.850.25. Cavité mesurée directement sur le modèle 3D.
+            </p>
+        </div>
 
-  <div>
-    <h2>Modèle d'organiseur</h2>
-    <div class="field">
-      <select id="design">
-        <option value="lanes">Couloirs longitudinaux</option>
-        <option value="rows">Rangées transversales</option>
-        <option value="grid">Casiers (nid d'abeille)</option>
-        <option value="herringbone">Couloirs diagonaux</option>
-      </select>
-    </div>
-    <p id="hint"></p>
-  </div>
+        <div>
+            <h2>Modèle d'organiseur</h2>
+            <div class="field">
+                <select id="design">
+                    <option value="lanes">Couloirs longitudinaux</option>
+                    <option value="rows">Rangées transversales</option>
+                    <option value="grid">Casiers (nid d'abeille)</option>
+                    <option value="herringbone">Couloirs diagonaux</option>
+                </select>
+            </div>
+            <p id="hint"></p>
+        </div>
 
-  <div>
-    <h2>Géométrie</h2>
-    <label class="field" id="row-count"><span>Nombre de couloirs <output for="count"></output></span>
-      <input type="range" id="count" min="2" max="8" step="1" value="4"></label>
-    <label class="field" id="row-rows"><span>Nombre de rangées <output for="rows"></output></span>
-      <input type="range" id="rows" min="1" max="4" step="1" value="2"></label>
-    <label class="field" id="row-angle"><span>Angle (°) <output for="angle"></output></span>
-      <input type="range" id="angle" min="15" max="75" step="5" value="45"></label>
-    <label class="field"><span>Hauteur des séparateurs (cm) <output for="height"></output></span>
-      <input type="range" id="height" min="6" max="19" step="0.5" value="13"></label>
-    <label class="field"><span>Épaisseur matériau (mm) <output for="thickness"></output></span>
-      <input type="range" id="thickness" min="3" max="18" step="1" value="12"></label>
-    <label class="check"><input type="checkbox" id="base" checked> Fond solidaire (insert amovible)</label>
-  </div>
+        <div>
+            <h2>Géométrie</h2>
+            <label class="field" id="row-count"><span>Nombre de couloirs <output for="count"></output></span>
+                <input type="range" id="count" min="2" max="8" step="1" value="4"></label>
+            <label class="field" id="row-rows"><span>Nombre de rangées <output for="rows"></output></span>
+                <input type="range" id="rows" min="1" max="4" step="1" value="2"></label>
+            <label class="field" id="row-angle"><span>Angle (°) <output for="angle"></output></span>
+                <input type="range" id="angle" min="15" max="75" step="5" value="45"></label>
+            <label class="field"><span>Hauteur des séparateurs (cm) <output for="height"></output></span>
+                <input type="range" id="height" min="6" max="19" step="0.5" value="13"></label>
+            <label class="field"><span>Épaisseur matériau (mm) <output for="thickness"></output></span>
+                <input type="range" id="thickness" min="3" max="18" step="1" value="12"></label>
+            <label class="check"><input type="checkbox" id="base" checked> Fond solidaire (insert amovible)</label>
+        </div>
 
-  <div>
-    <h2>Chaussures</h2>
-    <div class="field">
-      <select id="mode">
-        <option value="flat">À plat, semelle en bas</option>
-        <option value="edge">Sur chant (verticales)</option>
-        <option value="nested">Paires imbriquées</option>
-      </select>
-    </div>
-    <label class="field"><span>Pointure EU <output for="size"></output></span>
-      <input type="range" id="size" min="28" max="47" step="1" value="43"></label>
-    <label class="check"><input type="checkbox" id="shoes" checked> Afficher les chaussures</label>
-    <label class="check"><input type="checkbox" id="drawer" checked> Afficher le tiroir</label>
-    <div class="buttons"><button id="optimise">Optimiser la capacité</button></div>
-  </div>
+        <div>
+            <h2>Chaussures</h2>
+            <div class="field">
+                <select id="mode">
+                    <option value="flat">À plat, semelle en bas</option>
+                    <option value="edge">Sur chant (verticales)</option>
+                    <option value="nested">Paires imbriquées</option>
+                </select>
+            </div>
+            <label class="field"><span>Pointure EU <output for="size"></output></span>
+                <input type="range" id="size" min="28" max="47" step="1" value="43"></label>
+            <label class="check"><input type="checkbox" id="shoes" checked> Afficher les chaussures</label>
+            <label class="check"><input type="checkbox" id="drawer" checked> Afficher le tiroir</label>
+            <div class="buttons"><button id="optimise">Optimiser la capacité</button></div>
+        </div>
 
-  <div>
-    <h2>Vue &amp; export</h2>
-    <div class="buttons">
-      <button id="view-reset">Vue 3/4</button>
-      <button id="view-top">Vue de dessus</button>
-      <button id="export">Exporter GLB</button>
-    </div>
-  </div>
+        <div>
+            <h2>Vue &amp; export</h2>
+            <div class="buttons">
+                <button id="view-reset">Vue 3/4</button>
+                <button id="view-top">Vue de dessus</button>
+                <button id="export">Exporter GLB</button>
+            </div>
+        </div>
 
-  <div>
-    <h2>Débit des panneaux</h2>
-    <ul id="cutlist"></ul>
-  </div>
-</aside>
+        <div>
+            <h2>Débit des panneaux</h2>
+            <ul id="cutlist"></ul>
+        </div>
+    </aside>
 
-<main>
-  <canvas id="scene"></canvas>
-  <footer id="stats">Chargement du modèle…</footer>
-</main>
+    <main>
+        <canvas id="scene"></canvas>
+        <footer id="stats">Chargement du modèle…</footer>
+    </main>
 
-<script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -129,6 +228,7 @@
   }
 }
 </script>
-<script type="module" src="src/app.js"></script>
+    <script type="module" src="src/app.js"></script>
 </body>
+
 </html>

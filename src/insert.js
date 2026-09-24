@@ -70,7 +70,7 @@ function clean(poly) {
     if (!q || Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6) out.push(p);
   }
   if (out.length > 1 && Math.hypot(out[0][0] - out.at(-1)[0], out[0][1] - out.at(-1)[1]) < 1e-6) out.pop();
-  for (let i = 0; i < out.length && out.length > 3; ) {
+  for (let i = 0; i < out.length && out.length > 3;) {
     const a = out[(i - 1 + out.length) % out.length];
     const b = out[i];
     const c = out[(i + 1) % out.length];
@@ -90,11 +90,12 @@ function stripPolygon({ L, H, topSlots, bottomSlots, width, startProfile, endPro
 }
 
 /**
- * params:   { height, thickness, cols, rows, frame, clearance }
+ * params:   { height, thickness, cols, rows, frame, clearance, slotTol }
  * interior: { floorY, height, box: {xMin,xMax,zMin,zMax}, profiles: {xMin,...} }
  */
 export function buildInsert(params, interior) {
-  const { height: H, thickness: t, cols, rows, frame, clearance: c } = params;
+  const { height: H, thickness: t, cols, rows, frame, clearance: c, slotTol = 0 } = params;
+  const slotW = t + slotTol;
   const errors = [];
   const warnings = [];
 
@@ -119,7 +120,7 @@ export function buildInsert(params, interior) {
       id: 'A',
       length: W,
       poly: stripPolygon({
-        L: W, H, width: t,
+        L: W, H, width: slotW,
         topSlots: xs.positions.map((x) => x - x0),
         bottomSlots: [],
         startProfile: p.xMin,
@@ -134,7 +135,7 @@ export function buildInsert(params, interior) {
       id: 'B',
       length: D,
       poly: stripPolygon({
-        L: D, H, width: t,
+        L: D, H, width: slotW,
         topSlots: [],
         bottomSlots: zs.positions.map((z) => z - z0),
         startProfile: p.zMin,

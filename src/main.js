@@ -53,15 +53,34 @@ function message(text, cls = '') {
   $('messages').append(p);
 }
 
+function disposeObject(root) {
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.geometry.dispose();
+    for (const mat of [].concat(o.material)) {
+      for (const v of Object.values(mat)) if (v?.isTexture) v.dispose();
+      mat.dispose();
+    }
+  });
+}
+
+let loadId = 0;
 async function loadModel(url) {
+  const id = ++loadId;
   $('messages').textContent = '';
   message('Loading model…');
   let gltf;
   try {
     gltf = await new GLTFLoader().loadAsync(url);
   } catch (e) {
+    if (id !== loadId) return;
     $('messages').textContent = '';
     message(`Could not load model: ${e.message}`, 'error');
+    return;
+  }
+  // A newer load was started while this one was in flight.
+  if (id !== loadId) {
+    disposeObject(gltf.scene);
     return;
   }
   const model = gltf.scene;
@@ -73,12 +92,15 @@ async function loadModel(url) {
     if (o.isMesh) for (const mat of [].concat(o.material)) mat.side = THREE.DoubleSide;
   });
 
+  drawerGroup.children.forEach(disposeObject);
   drawerGroup.clear();
   drawerGroup.add(model);
   detected = detectInterior(model);
   frameCamera(model);
 
   if (!detected) {
+    clearInsert();
+    $('drawerInfo').textContent = '';
     $('messages').textContent = '';
     message('No drawer floor found. The model must be Y-up and open at the top.', 'error');
     return;
@@ -132,6 +154,7 @@ function readParams() {
     clearance: num('clearance'),
     frame: $('frame').checked,
     kerf: num('kerf'),
+    slotTol: num('slotTol'),
     sheet: { w: num('sheetW'), h: num('sheetH') },
   };
 }
@@ -141,8 +164,9 @@ function update() {
   if (!detected) return;
   $('messages').textContent = '';
   const p = readParams();
-  const nums = [p.height, p.thickness, p.clearance, p.kerf, p.sheet.w, p.sheet.h, +$('width').value, +$('depth').value];
+  const nums = [p.height, p.thickness, p.clearance, p.kerf, p.slotTol, p.sheet.w, p.sheet.h, +$('width').value, +$('depth').value];
   if (nums.some((n) => !Number.isFinite(n) || n < 0) || p.height <= 0 || p.thickness <= 0) {
+    clearInsert();
     message('Enter valid positive numbers.', 'error');
     return;
   }
@@ -165,13 +189,21 @@ function update() {
   const lines = [`Cells: ${res.cell.w.toFixed(1)} × ${res.cell.d.toFixed(1)} mm (at the floor)`];
   for (const part of res.parts) {
     const slots = part.id === 'A' ? 'slots on top' : 'slots underneath';
-    lines.push(`Strip ${part.id}: ${part.placements.length} × ${part.length.toFixed(1)} × ${p.height} mm, ${slots}`);
+    const us = part.poly.map(([u]) => u);
+    const len = Math.max(...us) - Math.min(...us);
+    lines.push(`Strip ${part.id}: ${part.placements.length} × ${len.toFixed(1)} × ${p.height} mm, ${slots}`);
   }
   $('insertInfo').textContent = res.errors.length ? '' : lines.join('\n');
 
   const { sheets, size, error } = layoutSheets(res.parts, p.sheet, p.kerf);
   if (error) message(error, 'error');
   renderCutting(sheets, size, p);
+}
+
+function clearInsert() {
+  rebuildInsert([], 0);
+  renderCutting([], null, readParams());
+  $('insertInfo').textContent = '';
 }
 
 let insertGeometries = [];
@@ -237,17 +269,26 @@ function renderCutting(sheets, size, p) {
 document.querySelectorAll('aside input:not([type="file"])').forEach((el) => el.addEventListener('input', update));
 $('resetDims').addEventListener('click', () => detected && resetDims());
 $('showDrawer').addEventListener('change', (e) => (drawerGroup.visible = e.target.checked));
+const LOCAL_FILE = '#local';
+let localFile = null;
+function loadLocalFile() {
+  const url = URL.createObjectURL(localFile);
+  return loadModel(url).finally(() => URL.revokeObjectURL(url));
+}
 $('modelSelect').addEventListener('change', (e) => {
-  if (e.target.value) loadModel(e.target.value);
+  if (e.target.value === LOCAL_FILE) loadLocalFile();
+  else loadModel(e.target.value);
 });
 $('modelFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  localFile = file;
+  // Lets picking the same file again fire another change event.
+  e.target.value = '';
   const select = $('modelSelect');
-  select.querySelector('option[value=""]')?.remove();
-  select.prepend(new Option(file.name, '', true, true));
-  const url = URL.createObjectURL(file);
-  loadModel(url).finally(() => URL.revokeObjectURL(url));
+  select.querySelector(`option[value="${LOCAL_FILE}"]`)?.remove();
+  select.prepend(new Option(file.name, LOCAL_FILE, true, true));
+  loadLocalFile();
 });
 
 async function loadModelList() {

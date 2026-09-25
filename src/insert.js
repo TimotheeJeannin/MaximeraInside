@@ -118,10 +118,16 @@ export function buildInsert(params, interior) {
   const W = interior.box.xMax - c - x0;
   const D = interior.box.zMax - c - z0;
 
-  const xs = stripPositions(x0, W, colSpec, t, frame);
-  const zs = stripPositions(z0, D, rowSpec, t, frame);
-  for (const [s, what] of [[xs, 'Column widths'], [zs, 'Row depths']]) {
-    if (s.fixed > s.free + 0.5 || s.cells.some((w) => w <= 0)) {
+  const p = frame ? {} : interior.profiles;
+  // Cells are sized at the top of the insert; sloped walls make outer cells narrower at the floor.
+  const grow = (k) => profileAt(p[k], H);
+  const xs = stripPositions(x0 - grow('xMin'), W + grow('xMin') + grow('xMax'), colSpec, t, frame);
+  const zs = stripPositions(z0 - grow('zMin'), D + grow('zMin') + grow('zMax'), rowSpec, t, frame);
+  const atFloor = (ws, lo, hi) =>
+    ws.map((w, i) => w - (i === 0 ? grow(lo) : 0) - (i === ws.length - 1 ? grow(hi) : 0));
+  const floorCells = { w: atFloor(xs.cells, 'xMin', 'xMax'), d: atFloor(zs.cells, 'zMin', 'zMax') };
+  for (const [s, floor, what] of [[xs, floorCells.w, 'Column widths'], [zs, floorCells.d, 'Row depths']]) {
+    if (s.fixed > s.free + 0.5 || floor.some((w) => w <= 0)) {
       errors.push(`${what} don't fit: ${s.fixed.toFixed(1)} mm requested, ${s.free.toFixed(1)} mm available.`);
     } else if (s.spread && Math.abs(s.free - s.fixed) > 0.5) {
       warnings.push(
@@ -133,9 +139,8 @@ export function buildInsert(params, interior) {
   if (H > interior.height + 0.01) warnings.push(`Insert is taller than the drawer walls (~${interior.height.toFixed(0)} mm).`);
   if (!xs.positions.length && !zs.positions.length) errors.push('Nothing to cut: add columns/rows or enable the frame.');
   const cells = { w: xs.cells, d: zs.cells };
-  if (errors.length) return { parts: [], errors, warnings, cells };
+  if (errors.length) return { parts: [], errors, warnings, cells, floorCells };
 
-  const p = frame ? {} : interior.profiles;
   const parts = [];
 
   // Strips running along X (between rows); slotted from the top.
@@ -169,5 +174,5 @@ export function buildInsert(params, interior) {
     });
   }
 
-  return { parts, errors, warnings, cells };
+  return { parts, errors, warnings, cells, floorCells };
 }

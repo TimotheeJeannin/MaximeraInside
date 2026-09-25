@@ -346,8 +346,12 @@ function update() {
   const [fw, fd] = [fmt(w), fmt(d)];
   const lines =
     fw.includes(',') || fd.includes(',')
-      ? [`Column widths: ${fw} mm`, `Row depths: ${fd} mm (at the floor)`]
-      : [`Cells: ${fw} × ${fd} mm (at the floor)`];
+      ? [`Column widths: ${fw} mm`, `Row depths: ${fd} mm (at the top)`]
+      : [`Cells: ${fw} × ${fd} mm (at the top)`];
+  const floor = [];
+  if (fmt(res.floorCells.w) !== fw) floor.push(`widths ${fmt(res.floorCells.w)}`);
+  if (fmt(res.floorCells.d) !== fd) floor.push(`depths ${fmt(res.floorCells.d)}`);
+  if (floor.length) lines.push(`At the floor: ${floor.join('; ')} mm`);
   for (const part of res.parts) {
     const slots = part.id === 'A' ? 'slots on top' : 'slots underneath';
     const us = part.poly.map(([u]) => u);

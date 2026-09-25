@@ -105,6 +105,8 @@ main {
   flex: 3;
   min-height: 0;
   position: relative;
+  /* clientWidth rounds up at fractional zoom; clip so the canvas can't trigger page scrollbars */
+  overflow: hidden;
 }
 
 #viewer canvas {

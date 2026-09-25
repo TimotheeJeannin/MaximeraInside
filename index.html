@@ -61,7 +61,13 @@
   </aside>
 
   <main>
-    <div id="viewer"></div>
+    <div id="viewer">
+      <div id="viewerTools">
+        <button id="measureBtn" type="button" aria-pressed="false"
+          title="Click two points to measure; snaps to corners (green dot). Esc to exit.">Measure</button>
+        <span id="measureInfo"></span>
+      </div>
+    </div>
     <section id="cutting">
       <header>
         <strong>Cutting file</strong>

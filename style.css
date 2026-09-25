@@ -113,6 +113,39 @@ main {
   display: block;
 }
 
+#viewer.measuring canvas {
+  cursor: crosshair;
+}
+
+#viewerTools {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#viewerTools button {
+  margin: 0;
+}
+
+#measureBtn[aria-pressed="true"] {
+  background: #e0115f;
+  border-color: #e0115f;
+  color: #fff;
+}
+
+#measureInfo {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+#measureInfo:empty {
+  display: none;
+}
+
 #cutting {
   flex: 2;
   min-height: 0;

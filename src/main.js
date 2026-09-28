@@ -40,8 +40,25 @@ renderer.setAnimationLoop(() => {
 const drawerGroup = new THREE.Group();
 const insertGroup = new THREE.Group();
 scene.add(drawerGroup, insertGroup);
-const wood = new THREE.MeshStandardMaterial({ color: 0xd9b07a, roughness: 0.85 });
-const edgeMat = new THREE.LineBasicMaterial({ color: 0x6b4a22 });
+const MATERIALS = [
+  { name: 'Plexiglass, clear', color: 0xe6f4f1, edge: 0x6fa39b, roughness: 0.05, opacity: 0.3 },
+  { name: 'Plexiglass, frosted', color: 0xf3f6f6, edge: 0xa9b8b8, roughness: 0.55, opacity: 0.75 },
+  { name: 'Birch plywood', color: 0xd9b07a, edge: 0x6b4a22, roughness: 0.85 },
+  { name: 'MDF', color: 0xa87a52, edge: 0x5a3b20, roughness: 0.9 },
+  { name: 'Cardboard', color: 0xc49a6c, edge: 0x7a5a3a, roughness: 1 },
+].map(({ name, color, edge, roughness, opacity = 1 }) => ({
+  name,
+  mesh: new THREE.MeshPhysicalMaterial({
+    color,
+    roughness,
+    opacity,
+    transparent: opacity < 1,
+    // Lets strips behind a see-through strip still show.
+    depthWrite: opacity === 1,
+  }),
+  edge: new THREE.LineBasicMaterial({ color: edge }),
+}));
+let insertMat = MATERIALS[0];
 
 // --- Measure tool -----------------------------------------------------------
 let measureOn = false;
@@ -383,7 +400,7 @@ function rebuildInsert(parts, t) {
     insertGeometries.push(geo, edges);
     for (const pl of part.placements) {
       const obj = new THREE.Group();
-      obj.add(new THREE.Mesh(geo, wood), new THREE.LineSegments(edges, edgeMat));
+      obj.add(new THREE.Mesh(geo, insertMat.mesh), new THREE.LineSegments(edges, insertMat.edge));
       if (pl.axis === 'x') {
         obj.position.set(pl.start, detected.floorY, pl.at - t / 2);
       } else {
@@ -434,6 +451,14 @@ function renderCutting(sheets, size, p) {
 document.querySelectorAll('aside input:not([type="file"])').forEach((el) => el.addEventListener('input', update));
 $('resetDims').addEventListener('click', () => detected && resetDims());
 $('showDrawer').addEventListener('change', (e) => (drawerGroup.visible = e.target.checked));
+MATERIALS.forEach((m, i) => $('material').append(new Option(m.name, i)));
+$('material').addEventListener('change', (e) => {
+  insertMat = MATERIALS[e.target.value];
+  insertGroup.traverse((o) => {
+    if (o.isMesh) o.material = insertMat.mesh;
+    else if (o.isLineSegments) o.material = insertMat.edge;
+  });
+});
 const LOCAL_FILE = '#local';
 let localFile = null;
 function loadLocalFile() {

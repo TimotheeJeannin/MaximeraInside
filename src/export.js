@@ -36,7 +36,7 @@ function bounds(poly) {
 /**
  * Shelf-packs every part instance onto as many sheets as needed.
  * Parts are laid along the sheet's long side. Returns { sheets, size, error }.
- * Each sheet is a list of polygons already placed in sheet coordinates (y down).
+ * Each sheet is { cuts, marks }: closed cut polygons and open engrave polylines in sheet coordinates (y down).
  */
 export function layoutSheets(parts, sheet, kerf) {
   const size = { w: Math.max(sheet.w, sheet.h), h: Math.min(sheet.w, sheet.h) };
@@ -45,7 +45,7 @@ export function layoutSheets(parts, sheet, kerf) {
     const poly = offsetPolygon(part.poly, kerf / 2);
     const b = bounds(poly);
     for (let i = 0; i < part.placements.length; i++) {
-      items.push({ poly, b, w: b.maxX - b.minX, h: b.maxY - b.minY });
+      items.push({ poly, marks: part.marks ?? [], b, w: b.maxX - b.minX, h: b.maxY - b.minY });
     }
   }
   if (!items.length) return { sheets: [], size };
@@ -67,7 +67,7 @@ export function layoutSheets(parts, sheet, kerf) {
       const last = rows.filter((r) => r.sheet === sheetIdx).at(-1);
       let y = last ? last.y + last.h + GAP : MARGIN;
       if (sheetIdx < 0 || y + it.h > size.h - MARGIN) {
-        sheets.push([]);
+        sheets.push({ cuts: [], marks: [] });
         sheetIdx++;
         y = MARGIN;
       }
@@ -76,7 +76,9 @@ export function layoutSheets(parts, sheet, kerf) {
     }
     const x = MARGIN + row.used;
     // Flip v so the top edge of the strip is at the top of the sheet.
-    sheets[row.sheet].push(it.poly.map(([u, v]) => [x + u - it.b.minX, row.y + it.b.maxY - v]));
+    const place = ([u, v]) => [x + u - it.b.minX, row.y + it.b.maxY - v];
+    sheets[row.sheet].cuts.push(it.poly.map(place));
+    sheets[row.sheet].marks.push(...it.marks.map((m) => m.map(place)));
     row.used += it.w + GAP;
   }
   return { sheets, size };
@@ -84,30 +86,36 @@ export function layoutSheets(parts, sheet, kerf) {
 
 const f = (n) => (Math.round(n * 1000) / 1000).toString();
 
-export function sheetToSVG(polys, size, { preview = false } = {}) {
-  const paths = polys
-    .map((p) => `<path d="M${p.map(([x, y]) => `${f(x)} ${f(y)}`).join(' L')} Z"/>`)
-    .join('\n');
+export function sheetToSVG({ cuts, marks }, size, { preview = false } = {}) {
+  const path = (p, close) => `<path d="M${p.map(([x, y]) => `${f(x)} ${f(y)}`).join(' L')}${close ? ' Z' : ''}"/>`;
   const bg = preview ? `<rect width="${size.w}" height="${size.h}" fill="#fff" stroke="#999" stroke-width="1"/>\n` : '';
   const dims = preview ? '' : ` width="${size.w}mm" height="${size.h}mm"`;
+  const engrave = marks.length
+    ? `<g id="engrave" fill="none" stroke="#0000ff" stroke-width="${preview ? 0.3 : 0.1}">
+${marks.map((p) => path(p, false)).join('\n')}
+</g>
+`
+    : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 ${size.w} ${size.h}">
-${bg}<g fill="none" stroke="#ff0000" stroke-width="${preview ? 0.8 : 0.1}">
-${paths}
+${bg}${engrave}<g id="cut" fill="none" stroke="#ff0000" stroke-width="${preview ? 0.8 : 0.1}">
+${cuts.map((p) => path(p, true)).join('\n')}
 </g>
 </svg>
 `;
 }
 
-// Minimal AutoCAD R12 DXF: closed POLYLINEs on a "CUT" layer, y up.
-export function sheetToDXF(polys, size) {
+// Minimal AutoCAD R12 DXF: closed POLYLINEs on a "CUT" layer, open ones on "ENGRAVE", y up.
+export function sheetToDXF({ cuts, marks }, size) {
   const out = ['0', 'SECTION', '2', 'HEADER', '9', '$ACADVER', '1', 'AC1009', '9', '$INSUNITS', '70', '4', '0', 'ENDSEC',
     '0', 'SECTION', '2', 'ENTITIES'];
-  for (const p of polys) {
-    out.push('0', 'POLYLINE', '8', 'CUT', '66', '1', '10', '0', '20', '0', '30', '0', '70', '1');
-    for (const [x, y] of p) out.push('0', 'VERTEX', '8', 'CUT', '10', f(x), '20', f(size.h - y), '30', '0');
-    out.push('0', 'SEQEND', '8', 'CUT');
-  }
+  const polyline = (p, layer, color, closed) => {
+    out.push('0', 'POLYLINE', '8', layer, '62', color, '66', '1', '10', '0', '20', '0', '30', '0', '70', closed ? '1' : '0');
+    for (const [x, y] of p) out.push('0', 'VERTEX', '8', layer, '10', f(x), '20', f(size.h - y), '30', '0');
+    out.push('0', 'SEQEND', '8', layer);
+  };
+  for (const p of cuts) polyline(p, 'CUT', '1', true);
+  for (const p of marks) polyline(p, 'ENGRAVE', '5', false);
   out.push('0', 'ENDSEC', '0', 'EOF');
   return out.join('\n') + '\n';
 }

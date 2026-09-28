@@ -1,6 +1,8 @@
 // Pure geometry for an egg-crate drawer insert. All units are mm.
 // Parts are 2D polygons in (u, v): u along the strip, v up from the drawer floor.
 
+import { strokeText } from './font.js';
+
 export function profileAt(profile, h) {
   if (!profile) return 0;
   const { step, values } = profile;
@@ -98,6 +100,47 @@ function stripPolygon({ L, H, topSlots, bottomSlots, width, startProfile, endPro
   const right = endProfile(endProf, H, 1, L);
   const left = endProfile(startProfile, H, -1, 0).reverse();
   return clean([...bottom, ...right, ...top, ...left]);
+}
+
+const TEST_STEPS = [-0.1, -0.05, 0, 0.05, 0.1];
+
+// A comb whose top slots step the allowance around slotTol, plus a key to push into them.
+export function buildTestPieces({ thickness: t, slotTol = 0, kerf = 0 }) {
+  const H = 30;
+  const d = H / 2;
+  const pitch = Math.max(10, Math.ceil(2.5 * t));
+  const L = pitch * (TEST_STEPS.length + 1);
+  // Negative allowances can't be entered, so shift the range up instead.
+  const base = Math.max(slotTol, -TEST_STEPS[0]);
+  const allowances = TEST_STEPS.map((s) => base + s);
+  const top = allowances.flatMap((a, i) => {
+    const c = pitch * (i + 1);
+    const w = t + a;
+    return [[c - w / 2, H], [c - w / 2, H - d], [c + w / 2, H - d], [c + w / 2, H]];
+  });
+  // The chamfer marks the end with the tightest slot.
+  const chamfer = 3;
+  const comb = [[0, 0], [L, 0], [L, H], ...top.reverse(), [chamfer, H], [0, H - chamfer]];
+
+  const K = Math.max(20, 2 * t + 12);
+  // Loose on purpose so only the comb slot sets the fit; flush tops still check the slot depths.
+  const kw = t + 1;
+  const key = [[0, 0], [(K - kw) / 2, 0], [(K - kw) / 2, d], [(K + kw) / 2, d], [(K + kw) / 2, 0], [K, 0], [K, H], [0, H]];
+
+  const combMarks = allowances.flatMap((a, i) => strokeText(a.toFixed(2), pitch * (i + 1), 5, 2.5));
+  const keyMarks = [
+    ...strokeText(`K${kerf.toFixed(2)}`, K / 2, 23, 3),
+    ...strokeText(`T${+t.toFixed(2)}`, K / 2, 17.5, 3),
+  ];
+
+  return {
+    parts: [
+      { id: 'comb', length: L, poly: comb, marks: combMarks, placements: [{}] },
+      { id: 'key', length: K, poly: key, marks: keyMarks, placements: [{}] },
+    ],
+    allowances,
+    length: L,
+  };
 }
 
 /**

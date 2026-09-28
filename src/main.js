@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { detectInterior } from './detect.js';
-import { buildInsert } from './insert.js';
+import { buildInsert, buildTestPieces } from './insert.js';
 import { layoutSheets, sheetToSVG, sheetToDXF } from './export.js';
 
 const MODELS_MANIFEST = 'models/models.json';
@@ -313,12 +313,16 @@ function readParams() {
     kerf: num('kerf'),
     slotTol: num('slotTol'),
     sheet: { w: num('sheetW'), h: num('sheetH') },
+    test: $('testMode').checked,
   };
 }
 
 // --- Update -----------------------------------------------------------------
 function update() {
-  if (!detected) return;
+  if (!detected && !$('testMode').checked) {
+    clearInsert();
+    return;
+  }
   $('messages').textContent = '';
   // A size list drives the count; the typed count comes back when the list is cleared.
   for (const [id, listId] of [['cols', 'colWidths'], ['rows', 'rowDepths']]) {
@@ -331,6 +335,10 @@ function update() {
     if (list) el.value = list.length;
   }
   const p = readParams();
+  if (p.test) {
+    updateTest(p);
+    return;
+  }
   if (p.colWidths === undefined || p.rowDepths === undefined) {
     clearInsert();
     message('Cell sizes must be positive numbers or *, separated by commas.', 'error');
@@ -376,8 +384,30 @@ function update() {
     lines.push(`Strip ${part.id}: ${part.placements.length} × ${len.toFixed(1)} × ${p.height} mm, ${slots}`);
   }
   $('insertInfo').textContent = res.errors.length ? '' : lines.join('\n');
+  $('testInfo').textContent = '';
 
   const { sheets, size, error } = layoutSheets(res.parts, p.sheet, p.kerf);
+  if (error) message(error, 'error');
+  renderCutting(sheets, size, p);
+}
+
+function updateTest(p) {
+  clearInsert();
+  const nums = [p.thickness, p.kerf, p.slotTol, p.sheet.w, p.sheet.h];
+  if (nums.some((n) => !Number.isFinite(n) || n < 0) || p.thickness <= 0) {
+    message('Enter valid positive numbers.', 'error');
+    return;
+  }
+  const test = buildTestPieces(p);
+  $('testInfo').textContent = [
+    'Enter the measured sheet thickness first.',
+    `Comb slots from the chamfered end, allowance: ${test.allowances.map((a) => a.toFixed(2)).join(', ')} mm.`,
+    'Push the key into each slot and use the allowance of the one that slides in under light pressure. ' +
+    'Tops should be flush.',
+    `Kerf: measure the comb length; actual kerf = ${p.kerf} + ${test.length} − measured.`,
+    'If you change the kerf, add the same change to the chosen allowance.',
+  ].join('\n');
+  const { sheets, size, error } = layoutSheets(test.parts, p.sheet, p.kerf);
   if (error) message(error, 'error');
   renderCutting(sheets, size, p);
 }
@@ -386,6 +416,7 @@ function clearInsert() {
   rebuildInsert([], 0);
   renderCutting([], null, readParams());
   $('insertInfo').textContent = '';
+  $('testInfo').textContent = '';
 }
 
 let insertGeometries = [];
@@ -423,7 +454,7 @@ function renderCutting(sheets, size, p) {
 
   const dl = $('downloads');
   dl.textContent = '';
-  const base = `insert-${p.cols}x${p.rows}-${p.height}mm-${p.thickness}mm`;
+  const base = p.test ? `fit-test-${p.thickness}mm` : `insert-${p.cols}x${p.rows}-${p.height}mm-${p.thickness}mm`;
   sheets.forEach((s, i) => {
     const suffix = sheets.length > 1 ? `-sheet${i + 1}` : '';
     for (const [ext, text, type] of [
@@ -442,7 +473,8 @@ function renderCutting(sheets, size, p) {
   });
   if (sheets.length) {
     const note = document.createElement('span');
-    note.textContent = `${size.w} × ${size.h} mm, ${sheets.length} sheet${sheets.length > 1 ? 's' : ''}, red = cut`;
+    const marks = sheets.some((s) => s.marks.length) ? ', blue = engrave' : '';
+    note.textContent = `${size.w} × ${size.h} mm, ${sheets.length} sheet${sheets.length > 1 ? 's' : ''}, red = cut${marks}`;
     dl.prepend(note);
   }
 }
